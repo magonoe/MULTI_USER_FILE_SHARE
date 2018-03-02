@@ -1,0 +1,66 @@
+SYMETRIQUE
+-------------------------------------------------------------------------------
+| F = "PLainTextFile"                                                         |
+| C = cipherFile                                                              |
+| Salt                                                                        |
+|                                                                             |
+| KM = KDF( PWD, salt, 2^5) //mastere key                                     |
+| Kc = HASH (KM||0x00)                                                        |
+| Ki = HASH (KM||0x01)                                                        |
+| Cipher = CIPHER(F)||HMACKi(CIPHERKc(F))                                     |
+|                                                                             |
+|                                                                             |
+|                   M                                                         |
+|                   |                                                         |
+|                 [AES]                                                       |
+|                   |                                                         |
+|     8    16       ?      32                                                 |
+| ####################### ###                                                 |
+| | SALT | IV |     C    | h |                                                |
+| ####################### ###                                                 |
+|               |->[HMAC]->|                                                  |
+|                                                                             |
+|                                                                             |
+| PADDING :                                                                   |
+|                                                                             |
+| ###########################                                                 |
+| # INPUT # 0x80 # 000...000#                                                 |
+| ###########################                                                 |
+|                                                                             |
+-------------------------------------------------------------------------------
+
+ASYMETRIQUE
+
+générer clé pri/pub avec openssl
+
+Rand() KC IV
+
+chiffre AES du message
+
+chiffre KC avec RSA avec clé pub
+
+forme le buffeur
+
+signe
+
+
+K = SymetricCipherKey //Random
+Kpub= asymPublicKey
+Kpri= asymPrivateKey
+
+Cipher = ASYMKpub(K) || SYMkpub
+
+                         M
+          32  16         |
+[Rand] ->(Kc, Iv)  ->  [AES]
+                         |
+                         C
+kc -> [RSA Enc] -> WK
+
+(IV||WK||C) -> [RSA Sign] -> SIGN
+
+
+    16           ?
+ ##################### ######
+ | IV | WK |     C    | SIGN |
+ ##################### ######
