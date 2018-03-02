@@ -366,11 +366,11 @@ cleanup:
 int chiffre_buffer( unsigned char **output, 	int *output_len,
 					unsigned char *input, 		int input_len,
 					unsigned char *Kc,
-					unsigned char *IV,
+					unsigned char *IV
 					)
 {
 
-
+return 0;
 
 
 

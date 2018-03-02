@@ -20,7 +20,7 @@ SRC 			= 	$(wildcard $(SRC_DIR)/*.c)
 OBJ 			= 	$(SRC:.c=.o)
 OBJ 			:= 	$(notdir $(OBJ))
 ##
-EXE 			= 	protect_buffer
+EXE 			= 	multi_protect
 
 #################################################
 ##
