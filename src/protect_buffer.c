@@ -330,7 +330,7 @@ int unprotect_buffer(unsigned char **output, int *output_len,
 			printf("%02X", chiffre[j]);
 	}
 
-     printf("#######################################\n\tCHIFFREMENT_AES");
+     printf("#######################################\n\tDECHIFFREMENT_AES");
      unsigned char *dechiffre = malloc (sizeof(char) * (input_len-32-16-salt_len) );
      mbedtls_aes_init( &ctx2 );
      mbedtls_aes_setkey_dec( &ctx2, Kc,32*8 );
@@ -363,23 +363,112 @@ cleanup:
   * @param [in] IV 							Iv
   * @return		0 if OK, 1 else
   */
-int chiffre_buffer( unsigned char **output, 	int *output_len,
-					unsigned char *input, 		int input_len,
+int chiffre_buffer( unsigned char **output, 	unsigned int *output_len,
+					unsigned char *input, 		unsigned int input_len,
 					unsigned char *Kc,
 					unsigned char *IV
 					)
 {
-
-return 0;
-
-
-
-
-
+	unsigned char *outputC = (unsigned char *) malloc ( sizeof(unsigned char) * (input_len) );
+	if (outputC == NULL)
+	{
+		fprintf(stderr, "Erreur allocation chiffre_buffer\n" );
+		return 1;
+	}
+	unsigned char *IV_copy = (unsigned char *) malloc ( sizeof(unsigned char) * 16 );
+	memcpy(IV_copy, IV, 16);
+	mbedtls_aes_context ctx2;
+	mbedtls_aes_init( &ctx2 );
+	if (mbedtls_aes_setkey_enc( &ctx2, Kc,32*8 ) !=0)
+	{
+		fprintf(stderr, "MBEDTLS_ERR_AES_INVALID_KEY_LENGTH chiffre_buffer\n");
+		return 1;
+	}
+	if ( mbedtls_aes_crypt_cbc( &ctx2,MBEDTLS_AES_ENCRYPT,input_len,IV_copy,input, outputC )!=0)
+	{
+		fprintf(stderr, "MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH chiffre_buffer\n");
+		return 1;
+	}
+	mbedtls_aes_free( &ctx2 );
+	free(IV_copy);
+	*output = outputC;
+	*output_len=input_len;
+	return 0;
 }
 
 
 
+
+
+
+
+int genKc(unsigned char **Kc)
+{
+	unsigned char *KC = malloc (sizeof(unsigned char) * 32);
+	if (gen_key(KC,32)!=0)
+	{
+		fprintf(stderr, "Erreur generation Kc\n");
+		return 1;
+	}
+	else
+	{
+		*Kc=KC;
+		return 0;
+	}
+}
+int genIV(unsigned char **IV)
+{
+	unsigned char *Iv = malloc (sizeof(unsigned char) * 16);
+	if (gen_key(Iv,32)!=0)
+	{
+		fprintf(stderr, "Erreur generation Kc\n");
+		return 1;
+	}
+	else
+	{
+		*IV=Iv;
+		return 0;
+	}
+}
+int loadInput(unsigned char **output, unsigned int *output_len,const char *filename)
+{
+	unsigned char *input=NULL;
+
+	FILE *Fd;
+	int input_len=0,pad_len=0;
+	Fd = fopen(filename,"r");
+	if (Fd==NULL)
+	{
+    	fprintf(stderr, "Erreur ouverture fichier\n" );
+    	return 1;
+    }
+    else
+    {
+    	fseek(Fd, 0, SEEK_END);
+        input_len = ftell(Fd);
+        rewind(Fd);
+        if (input_len > 5242880)
+        {
+        	fprintf(stderr, "Erreur fichier trop grand\n");
+        	return 1;
+        }
+        pad_len= 16 - (input_len % 16);
+        input = (unsigned char*) malloc(sizeof(unsigned char) * (input_len+pad_len));
+        fread(input, 1, input_len, Fd);
+		fclose(Fd);
+    
+    	input[input_len]=0x80;
+    	int i;
+		for (i=1; i<pad_len; i++)
+		{
+			input[input_len+i]=0x00;
+		}
+		*output=input;
+		*output_len=(input_len+pad_len);
+		return 0;
+	}
+	return 1;
+}
 
 
 

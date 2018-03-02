@@ -2,49 +2,60 @@
 #include <stdlib.h>
 #include <string.h>
 #include "protect_buffer.h"
-#include "deriv_passwd.h"
-int get_masterKey();
 
 int main (int argc, char ** argv){
-	unsigned char *Kc = malloc (sizeof(unsigned char) * 32);
-	unsigned char *IV = malloc (sizeof(unsigned char) * 16);
-	if (gen_key(Kc,32)!=0)
+	
+
+	unsigned char *IV, *Kc, *input,*output;
+	unsigned int input_len =0,output_len=0;
+
+	if (genKc(&Kc) !=0)
 	{
-		fprintf(stderr, "Erreur generation Kc\n");
 		return 1;
 	}
 
-	if (gen_key(IV, 16) != 0)
+	if (genIV(&IV) !=0)
 	{
-		fprintf(stderr, "Erreur generation IV\n");
 		return 1;
 	}
 
-	unsigned char *input=NULL;
-
-	FILE *Fd;
-	int input_len=0;
-	Fd = fopen(argv[1],"r");
-	if (Fd!=NULL)
+	if (loadInput(&input,&input_len,argv[1]) != 0)
 	{
-		fseek(Fd, 0, SEEK_END);
-        input_len = ftell(Fd);
-        rewind(Fd);
-        if (input_len > 5242880)
-        {
-        	fprintf(stderr, "Erreur fichier trop grand\n");
-        	return 1;
-        }
-        input = (unsigned char*) malloc(sizeof(unsigned char) * input_len);
-        fread(input, 1, input_len, Fd);
-        fclose(Fd);
-    }
+		return 1;
+	}
+
+	if (chiffre_buffer(&output,&output_len,input,input_len,Kc,IV) !=0)
+	{
+		return 1;
+	}
 
 
-    int i ;
+
+	int i;
+	printf("CLAIR :\t");
+	for (i=0;i<input_len;i++)
+	{
+		printf("%02X",input[i] );
+	}
+	printf("\n");
+	printf("CHIFFRE :\t");
+	for (i=0;i<output_len;i++)
+	{
+		printf("%02X",output[i] );
+	}
+	printf("\n");
+
 
 	return 0;
 }
+
+
+
+
+
+
+
+
 
 
 
