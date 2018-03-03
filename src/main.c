@@ -6,6 +6,21 @@
 int main (int argc, char ** argv){
 	
 
+
+
+
+	//-e <input_file> <output_file> <my_sign_priv.pem> <my_ciph_pub.pem> [user1_ciph_pub.pem ... [userN_ciph_pub.pem]]
+	//-d <input_file> <output_file> <my_priv_ciph.pem> <my_pub_ciph.pem> <sender_sign_pub.pem>
+	
+
+	int choix =0;
+	//choix = checkArg(int argc, char ** argv);
+	printf("choix : %d\n",argc );
+
+
+
+
+
 	unsigned char *IV, *Kc, *input,*output,*sha_output;
 	unsigned int input_len =0,output_len=0,sha_output_len=0;
 
@@ -33,7 +48,6 @@ int main (int argc, char ** argv){
 	{
 		return 1;
 	}
-
 
 	if (chiffreKc(&sha_output, sha_output_len, Kc, argv[2]) != 0)
 	{

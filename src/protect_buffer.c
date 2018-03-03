@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <malloc.h>
 
 #include "protect_buffer.h"
@@ -483,7 +484,7 @@ int signeKpub(unsigned char **output, 	unsigned int *output_len,
 	Fd = fopen(filename,"r");
 	if (Fd==NULL)
 	{
-    	fprintf(stderr, "Erreur ouverture fichier\n" );
+    	fprintf(stderr, "Erreur ouverture fichier signeKpub\n" );
     	return 1;
     }
     else
@@ -531,4 +532,51 @@ int signeKpub(unsigned char **output, 	unsigned int *output_len,
 		return 0;
 	}
 	return 1;
+}
+
+
+
+
+
+int checkArg(int argc, char ** argv)
+{
+	if (argc<=6)
+	{
+		return 0;
+	}
+	if (strcmp(argv[1],"-e")==0)
+	{
+
+	}
+	else if (strcmp(argv[1],"-d")==0)
+	{
+		if (argc !=7 )
+		{
+			return 0;
+		}
+		if (access(argv[2], R_OK) == -1)
+		{
+			return 0;
+		}
+		if (access(argv[4], R_OK) == -1)
+		{
+			return 0;
+		}
+		if (access(argv[5], R_OK) == -1)
+		{
+			return 0;
+		}
+		if (access(argv[6], R_OK) == -1)
+		{
+			return 0;
+		}
+	}
+	else
+	{
+		return 0;
+	}
+
+
+
+
 }
