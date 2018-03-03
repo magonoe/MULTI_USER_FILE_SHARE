@@ -6,8 +6,8 @@
 int main (int argc, char ** argv){
 	
 
-	unsigned char *IV, *Kc, *input,*output;
-	unsigned int input_len =0,output_len=0;
+	unsigned char *IV, *Kc, *input,*output,*sha_output;
+	unsigned int input_len =0,output_len=0,sha_output_len=0;
 
 	if (genKc(&Kc) !=0)
 	{
@@ -28,6 +28,24 @@ int main (int argc, char ** argv){
 	{
 		return 1;
 	}
+
+	if (signeKpub(&sha_output, sha_output_len, argv[2]) != 0)
+	{
+		return 1;
+	}
+
+
+	if (chiffreKc(&sha_output, sha_output_len, Kc, argv[2]) != 0)
+	{
+		return 1;
+	}
+
+
+
+
+
+
+
 
 
 

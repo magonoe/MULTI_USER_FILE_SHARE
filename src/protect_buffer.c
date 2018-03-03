@@ -223,19 +223,18 @@ int protect_buffer(	unsigned char **output, 	int *output_len,
 	printf("#######################################\n");
 cleanup:
 	return ret;
-
 }
 
- /**
-  * @param [out] output						plain text buffer
-  * @param [out] output_len					plain text buffer length in bytes
-  * @param [in] input						ciphered text buffer
-  * @param [in] input_len					ciphered text buffer length in bytes
-  * @param [in] master_key					master key (km)
-  * @param [in] key_len						master key length in bytes
-  * @param [in] salt_len					salt length in bytes
-  * @return		0 if OK, 1 else
-  */
+/**
+* @param [out] output						plain text buffer
+* @param [out] output_len					plain text buffer length in bytes
+* @param [in] input						ciphered text buffer
+* @param [in] input_len					ciphered text buffer length in bytes
+* @param [in] master_key					master key (km)
+* @param [in] key_len						master key length in bytes
+* @param [in] salt_len					salt length in bytes
+* @return		0 if OK, 1 else
+*/
 int unprotect_buffer(unsigned char **output, int *output_len,
                       unsigned char *input, int input_len,
                       unsigned char *master_key, int key_len,
@@ -396,12 +395,6 @@ int chiffre_buffer( unsigned char **output, 	unsigned int *output_len,
 	return 0;
 }
 
-
-
-
-
-
-
 int genKc(unsigned char **Kc)
 {
 	unsigned char *KC = malloc (sizeof(unsigned char) * 32);
@@ -433,7 +426,6 @@ int genIV(unsigned char **IV)
 int loadInput(unsigned char **output, unsigned int *output_len,const char *filename)
 {
 	unsigned char *input=NULL;
-
 	FILE *Fd;
 	int input_len=0,pad_len=0;
 	Fd = fopen(filename,"r");
@@ -454,6 +446,11 @@ int loadInput(unsigned char **output, unsigned int *output_len,const char *filen
         }
         pad_len= 16 - (input_len % 16);
         input = (unsigned char*) malloc(sizeof(unsigned char) * (input_len+pad_len));
+        if (input == NULL)
+        {
+        	fclose(Fd);
+        	return 1;
+        }
         fread(input, 1, input_len, Fd);
 		fclose(Fd);
     
@@ -471,4 +468,67 @@ int loadInput(unsigned char **output, unsigned int *output_len,const char *filen
 }
 
 
+int chiffreKc(	unsigned char **output, 	unsigned int *output_len,
+				unsigned char *Kc , const char *filename)
+{
+	return 1;
+}
 
+int signeKpub(unsigned char **output, 	unsigned int *output_len,
+				const char *filename)
+{
+	unsigned char *input=NULL;
+	FILE *Fd;
+	int input_len=0;
+	Fd = fopen(filename,"r");
+	if (Fd==NULL)
+	{
+    	fprintf(stderr, "Erreur ouverture fichier\n" );
+    	return 1;
+    }
+    else
+    {
+    	fseek(Fd, 0, SEEK_END);
+        input_len = ftell(Fd);
+        rewind(Fd);
+        if (input_len > 5242880)
+        {
+        	fprintf(stderr, "Erreur fichier trop grand\n");
+        	return 1;
+        }
+        input = (unsigned char*) malloc(sizeof(unsigned char) * (input_len));
+        if (input == NULL)
+        {
+        	fclose(Fd);
+        	return 1;
+        }
+        fread(input, 1, input_len, Fd);
+		fclose(Fd);
+    	
+		unsigned char *signeKpub= malloc (sizeof (unsigned char ) * 32);
+		mbedtls_sha256_context ctx;
+		mbedtls_sha256_init( &ctx );
+
+		if ( (mbedtls_sha256_starts_ret( &ctx, 0)) !=0)
+		{
+			return 1;
+		}
+		if ( (mbedtls_sha256_update_ret( &ctx, input,input_len )) !=0)
+		{
+			return 1;
+		}
+		if ( (mbedtls_sha256_finish_ret( &ctx, signeKpub)) !=0)
+		{
+			return 1;
+		}
+
+		mbedtls_sha256_free( &ctx );
+
+		free(input);
+
+		*output=signeKpub;
+		*output_len=32;
+		return 0;
+	}
+	return 1;
+}

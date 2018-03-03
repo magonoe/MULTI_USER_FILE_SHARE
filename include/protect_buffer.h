@@ -14,8 +14,11 @@ int chiffre_buffer( unsigned char **output, 	unsigned int *output_len,
 					unsigned char *IV
 					);
 
+int chiffreKc( 	unsigned char **output, 	unsigned int *output_len,
+				unsigned char *Kc , const char *filename);
 
-
+int signeKpub( 	unsigned char **output, 	unsigned int *output_len,
+				const char *filename);
 
 
 
