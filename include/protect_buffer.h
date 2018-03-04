@@ -17,10 +17,16 @@ int chiffre_buffer( unsigned char **output, 	unsigned int *output_len,
 int chiffreKc( 	unsigned char **output, 	unsigned int *output_len,
 				unsigned char *Kc , const char *filename);
 
+int dechiffreKc( 	unsigned char **output, 	unsigned int *output_len,
+					unsigned char *input, 		unsigned int input_len,
+					const char *filename);
+
 int signeKpub( 	unsigned char **output, 	unsigned int *output_len,
 				const char *filename);
 
 
+int checkArg(int argc, char ** argv);
+int encrypt(int argc, char **argv);
 
 int protect_buffer(unsigned char **output, int *output_len,
 					unsigned char *input, int input_len,

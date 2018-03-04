@@ -9,7 +9,9 @@
 #include "mbedtls/aes.h"
 #include "mbedtls/havege.h"
 #include "mbedtls/md.h"
-
+#include "mbedtls/pk.h"
+#include "mbedtls/ctr_drbg.h"
+#include "mbedtls/entropy.h"
 #define MBEDTLS_AES_ENCRYPT     1
 
 
@@ -390,7 +392,7 @@ int chiffre_buffer( unsigned char **output, 	unsigned int *output_len,
 		return 1;
 	}
 	mbedtls_aes_free( &ctx2 );
-	free(IV_copy);
+	//free(IV_copy);
 	*output = outputC;
 	*output_len=input_len;
 	return 0;
@@ -413,9 +415,9 @@ int genKc(unsigned char **Kc)
 int genIV(unsigned char **IV)
 {
 	unsigned char *Iv = malloc (sizeof(unsigned char) * 16);
-	if (gen_key(Iv,32)!=0)
+	if (gen_key(Iv,16)!=0)
 	{
-		fprintf(stderr, "Erreur generation Kc\n");
+		fprintf(stderr, "Erreur generation Iv\n");
 		return 1;
 	}
 	else
@@ -472,40 +474,99 @@ int loadInput(unsigned char **output, unsigned int *output_len,const char *filen
 int chiffreKc(	unsigned char **output, 	unsigned int *output_len,
 				unsigned char *Kc , const char *filename)
 {
-	return 1;
+	mbedtls_entropy_context entropy;
+    mbedtls_entropy_init( &entropy );
+	mbedtls_ctr_drbg_context ctr_drbg;
+    char *personalization = "Jenaimepasceprojet";
+
+    mbedtls_ctr_drbg_init( &ctr_drbg );
+
+   if ((mbedtls_ctr_drbg_seed( &ctr_drbg , mbedtls_entropy_func, &entropy, (const unsigned char *) personalization, strlen( personalization ) ))!=0)
+   {
+   	return 1;
+   }
+  	
+	unsigned char *outputC = (unsigned char*) malloc (sizeof(unsigned char) * 256 );
+	size_t olen=0;
+    mbedtls_pk_context ctx3;
+    mbedtls_pk_init (&ctx3);
+    if ((mbedtls_pk_parse_public_keyfile( &ctx3, filename ) )!=0 )
+    {
+    	return 1;
+    }
+    char ret=0;
+    if ((ret = mbedtls_pk_encrypt( &ctx3, Kc, 32, outputC, &olen, 256, mbedtls_ctr_drbg_random, &ctr_drbg))!= 0 )
+    {
+    	return 1;
+    }
+    *output=outputC;
+    *output_len=olen;
+
+	return 0;
+}
+
+int dechiffreKc( 	unsigned char **output, 	unsigned int *output_len,
+					unsigned char *input, 		unsigned int input_len,
+					const char *filename)
+{
+	mbedtls_entropy_context entropy;
+    mbedtls_entropy_init( &entropy );
+	mbedtls_ctr_drbg_context ctr_drbg;
+    char *personalization = "Jenaimepasceprojet";
+
+    mbedtls_ctr_drbg_init( &ctr_drbg );
+
+   if ((mbedtls_ctr_drbg_seed( &ctr_drbg , mbedtls_entropy_func, &entropy, (const unsigned char *) personalization, strlen( personalization ) ))!=0)
+   {
+   	return 1;
+   }
+  	
+	unsigned char *outputC = (unsigned char*) malloc (sizeof(unsigned char) * 256 );
+	size_t olen=0;
+    mbedtls_pk_context ctx3;
+    mbedtls_pk_init (&ctx3);
+    if ((mbedtls_pk_parse_keyfile( &ctx3, filename, "" ) )!=0 )
+    {
+    	return 1;
+    }
+    char ret=0;
+    if ((ret = mbedtls_pk_decrypt( &ctx3, input, input_len, outputC, &olen, 256, mbedtls_ctr_drbg_random, &ctr_drbg))!= 0 )
+    {
+    	return 1;
+    }
+    *output=outputC;
+    *output_len=olen;
+
+	return 0;
+
+
+
+
+
+
+
 }
 
 int signeKpub(unsigned char **output, 	unsigned int *output_len,
 				const char *filename)
 {
 	unsigned char *input=NULL;
-	FILE *Fd;
+	FILE *Fdesc;
 	int input_len=0;
-	Fd = fopen(filename,"r");
-	if (Fd==NULL)
+	Fdesc = fopen(filename,"rb");
+	if (Fdesc==NULL)
 	{
     	fprintf(stderr, "Erreur ouverture fichier signeKpub\n" );
     	return 1;
     }
     else
     {
-    	fseek(Fd, 0, SEEK_END);
-        input_len = ftell(Fd);
-        rewind(Fd);
-        if (input_len > 5242880)
-        {
-        	fprintf(stderr, "Erreur fichier trop grand\n");
-        	return 1;
-        }
+    	fseek(Fdesc, 0, SEEK_END);
+        input_len = ftell(Fdesc);
+        rewind(Fdesc);
         input = (unsigned char*) malloc(sizeof(unsigned char) * (input_len));
-        if (input == NULL)
-        {
-        	fclose(Fd);
-        	return 1;
-        }
-        fread(input, 1, input_len, Fd);
-		fclose(Fd);
-    	
+        fread(input, 1, input_len, Fdesc);
+         fclose(Fdesc);
 		unsigned char *signeKpub= malloc (sizeof (unsigned char ) * 32);
 		mbedtls_sha256_context ctx;
 		mbedtls_sha256_init( &ctx );
@@ -522,11 +583,9 @@ int signeKpub(unsigned char **output, 	unsigned int *output_len,
 		{
 			return 1;
 		}
-
 		mbedtls_sha256_free( &ctx );
 
 		free(input);
-
 		*output=signeKpub;
 		*output_len=32;
 		return 0;
@@ -546,37 +605,142 @@ int checkArg(int argc, char ** argv)
 	}
 	if (strcmp(argv[1],"-e")==0)
 	{
-
+		//-e <input_file> <output_file> <my_sign_priv.pem> <my_ciph_pub.pem> [user1_ciph_pub.pem ... [userN_ciph_pub.pem]]
+		if (access(argv[2], R_OK) == -1)
+		{
+			return 3;
+		}
+		if (access(argv[4], R_OK) == -1)
+		{
+			return 4;
+		}
+		if (access(argv[5], R_OK) == -1)
+		{
+			return 5;
+		}
+		int i;
+		for (i=6;i<argc;i++)
+		{
+			if (access(argv[i], R_OK) == -1)
+			{
+				return 6;
+			}	
+		}
+		return 1;
 	}
 	else if (strcmp(argv[1],"-d")==0)
 	{
 		if (argc !=7 )
 		{
-			return 0;
+			return 7;
 		}
 		if (access(argv[2], R_OK) == -1)
 		{
-			return 0;
+			return 8;
 		}
 		if (access(argv[4], R_OK) == -1)
 		{
-			return 0;
+			return 9;
 		}
 		if (access(argv[5], R_OK) == -1)
 		{
-			return 0;
+			return 10;
 		}
 		if (access(argv[6], R_OK) == -1)
 		{
-			return 0;
+			return 11;
 		}
+		return 2;
 	}
 	else
 	{
-		return 0;
+		return 12;
+	}
+}
+
+int encrypt(int argc, char **argv)
+{
+	unsigned char *IV, *Kc, *input,*output,*sha_output,*Kc_output,*Kc_D_output;
+	unsigned int input_len =0,output_len=0,sha_output_len=0,Kc_output_len=0,Kc_D_output_len=0;
+printf("1 GEN_KC\n");
+	if (genKc(&Kc) !=0)
+	{
+		return 1;
+	}
+printf("2 GEN_IV\n");
+	if (genIV(&IV) !=0)
+	{
+		return 1;
+	}
+printf("3 LOAD_INPUT\n");
+	if (loadInput(&input,&input_len,argv[2]) != 0)
+	{
+		return 1;
+	}
+printf("4 CHIFFRE_BUFFER\n");
+	if (chiffre_buffer(&output,&output_len,input,input_len,Kc,IV) !=0)
+	{
+		return 1;
+	}
+printf("5 SIGN_KPUB\n");
+	if (signeKpub(&sha_output, &sha_output_len, argv[6]) != 0)
+	{
+		return 1;
+	}
+printf("6 CHIFFRE_KC\n");
+	if (chiffreKc(&Kc_output, &Kc_output_len, Kc, argv[6]) != 0)
+	{
+		return 1;
+	}
+printf("7 DECHIFFRE_KC\n");
+if (dechiffreKc(&Kc_D_output, &Kc_D_output_len, Kc_output, Kc_output_len, argv[7]) != 0)
+	{
+		return 1;
 	}
 
 
 
 
+
+
+int j;
+
+
+
+printf("\tKc chiffre client1:\t");
+for (j=0;j<Kc_output_len;j++)
+{
+	printf("%02X",Kc_output[j] );
+}
+printf("\n");
+
+
+
+printf("\tKc[%d] dechiffre client1:\t",Kc_D_output_len);
+for (j=0;j<Kc_D_output_len;j++)
+{
+	printf("%02X",Kc_D_output[j] );
+}
+printf("\n");
+
+
+
+
+
+
+int i;
+
+	printf("CLAIR :\t");
+	for (i=0;i<input_len;i++)
+	{
+		printf("%02X",input[i] );
+	}
+	printf("\n");
+	printf("CHIFFRE :\t");
+	for (i=0;i<output_len;i++)
+	{
+		printf("%02X",output[i] );
+	}
+	printf("\n");
+	return 0;
 }
