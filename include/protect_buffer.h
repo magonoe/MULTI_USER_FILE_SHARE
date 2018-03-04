@@ -21,6 +21,9 @@ int dechiffreKc( 	unsigned char **output, 	unsigned int *output_len,
 					unsigned char *input, 		unsigned int input_len,
 					const char *filename);
 
+int signFic(unsigned char **output, 	unsigned int *output_len,
+			const char *filename, char *key); 
+
 int signeKpub( 	unsigned char **output, 	unsigned int *output_len,
 				const char *filename);
 
