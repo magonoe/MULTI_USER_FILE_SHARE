@@ -1,7 +1,7 @@
 #################################################
 ##
 CC 				= 	gcc
-CFLAGS 			= 	-O3 -Wall -g
+CFLAGS 			= 	-O3 -Wall
 LDFLAGS 		= 	-L$(LIB_DIR) -lmbedtls -lmbedcrypto -lmbedx509
 INCLUDE 		= 	-I$(INC_DIR)
 DEFINE 			= 	#-DDEBUG
