@@ -557,9 +557,62 @@ cleanup:
 								return ret;
 }
 
-int findKc( unsigned char *input, unsigned int input_len, unsigned char *key,unsigned char **Kc, unsigned int *offset)
+int isDest(unsigned char * where,char *key)
 {
-								return 1;
+	unsigned char *output=NULL;
+	unsigned int output_len=0;
+	signeKpub(&output,&output_len,key);
+	return memcmp(output,where,(size_t)output_len);
+}
+
+int findKc( unsigned char *input, unsigned int input_len, char *keypub, char *keypriv, unsigned char **Kc, unsigned int *Kc_len, unsigned int *offset)
+{
+	int cursor = 0;
+	int continu = 1;
+	int ok =1;
+	while(continu == 1)
+	{
+		if (input[cursor]!=0x00)
+		{
+			continu = 0;
+			*offset=cursor;
+		}
+		if (continu == 1)
+		{
+			if (isDest(&(input[cursor+1]),keypub)==0)
+			{
+				if ( (dechiffreKc(Kc,Kc_len,&(input[cursor+1+32]),256,keypriv))!=0)
+				{
+					return 1;
+				}
+				else
+				{
+					printf("you are dest !!\n");
+					cursor+=289;
+					ok=0;
+				if (cursor > input_len)
+					{
+						continu = 0;
+					}
+				}
+			}
+			else
+			{
+				cursor+=289;
+				if (cursor > input_len)
+					{
+						continu = 0;
+					}
+			}
+		}
+
+	}
+
+	if (ok == 0)
+	{
+		return 0;
+	}
+		return 1;
 }
 
 
@@ -674,7 +727,6 @@ int verifySign(unsigned char *input, unsigned int input_len,char *key)
 								mbedtls_sha256_starts_ret( &ctx6, SHA256 );
 								mbedtls_sha256_update_ret( &ctx6, input,input_len-256 );
 								mbedtls_sha256_finish_ret( &ctx6, hash);
-								int j =0;
 								if( (val = mbedtls_pk_verify( &ctx5, MBEDTLS_MD_SHA256, hash, 0,&input[input_len-256], 256 ) ) !=0)
 								{
 																ret =1;
@@ -771,6 +823,14 @@ int encrypt(int argc, char **argv)
 																ret=1;
 																goto cleanup;
 								}
+								int j=0;
+									printf("KC_len :%d \n",16);
+									
+									for (j=0;j<32;j++)
+									{
+										printf("%02X",Kc[j] );
+									}
+									printf("\n");
 								printf("2 GEN_IV\n");
 								if (genIV(&IV) !=0)
 								{
@@ -789,6 +849,7 @@ int encrypt(int argc, char **argv)
 																ret=1;
 																goto cleanup;
 								}
+
 								int nbdestinataire =0;
 								char header = 0x00;
 								fichierSortie= fopen(argv[3],"a");
@@ -806,6 +867,13 @@ int encrypt(int argc, char **argv)
 																								ret=1;
 																								goto cleanup;
 																}
+																int j=0;
+																printf("chiffreKc\n");
+																for (j=0;j<256;j++)
+																{
+																	printf("%02x",Kc_output[j] );
+																}
+																printf("\n");
 																fwrite(&header,1,1,fichierSortie);
 																fwrite(sha_output,1,sha_output_len,fichierSortie);
 																fwrite(Kc_output,1,Kc_output_len,fichierSortie);
@@ -891,8 +959,8 @@ int decrypt(int argc, char **argv)
 								//-d <input_file> <output_file> <my_priv_ciph.pem> <my_pub_ciph.pem> <sender_sign_pub.pem>
 
 								int ret =0;
-								unsigned char *IV=NULL, *Kc=NULL, *input=NULL,*output=NULL,*sha_output=NULL,*Kc_output=NULL,*Sign_output=NULL;
-								unsigned int input_len =0,output_len=0,sha_output_len=0,Kc_output_len=0,Sign_output_len=0,offset=0;
+								unsigned char *Kc=NULL, *input=NULL;
+								unsigned int input_len =0,Kc_len=0,offset=0;
 								FILE *fichierSortie;
 								fichierSortie= fopen(argv[3],"w+");
 								if (fichierSortie == NULL)
@@ -917,11 +985,15 @@ int decrypt(int argc, char **argv)
 								     goto cleanup;
 								   }
 								 printf("3 FIND_KC\n");
-								   if (findKc(input,input_len,&Kc,&offset,argv[5]) !=0)
+								   if (findKc(input,input_len,argv[5],argv[4],&Kc,&Kc_len,&offset) !=0)
 								   {
+								   	printf("you are not the dest\n");
 								     ret=1;
 								     goto cleanup;
 								   }
+
+								printf("4 LOAD_IV");
+							//	if (loadIv(&Iv))
 /*
 								   printf("4 DECHIFFRE_BUFFER\n");
 								   if (chiffre_buffer(&output,&output_len,input,input_len,Kc,IV) !=0)
@@ -970,51 +1042,25 @@ int decrypt(int argc, char **argv)
 								     goto cleanup;
 								   }
 								   fwrite(Sign_output,1,Sign_output_len,fichierSortie);
-								   fclose(fichierSortie);*/
+								   fclose(fichierSortie);
+
+
+
+
+									int j=0;
+									printf("KC_len :%d \n",Kc_len);
+									
+									for (j=0;j<Kc_len;j++)
+									{
+										printf("%02X",Kc[j] );
+									}
+									printf("\ninput[offset] = %02X",input[offset]);
+
+								   */
 								ret =0;
 cleanup:
 
-								if(Kc!=NULL)
-								{
-																memset(Kc,0,32);
-																free(Kc);
-								}
-
-								if (IV!=NULL)
-								{
-																memset(IV,0,16);
-																free(IV);
-								}
-
-								if (input!=NULL)
-								{
-																memset(input,0,input_len);
-																free(input);
-								}
-
-								if (output!=NULL)
-								{
-																memset(output,0,output_len);
-																free(output);
-								}
-
-								if (sha_output!=NULL)
-								{
-																memset(sha_output,0,sha_output_len);
-																free(sha_output);
-								}
-
-								if (Kc_output!=NULL)
-								{
-																memset(Kc_output,0,Kc_output_len);
-																free(Kc_output);
-								}
-
-								if (Sign_output!=NULL)
-								{
-																memset(Sign_output,0,Sign_output_len);
-																free(Sign_output);
-								}
+								
 								return ret;
 }
 
