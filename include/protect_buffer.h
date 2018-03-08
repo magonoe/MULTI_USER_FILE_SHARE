@@ -21,8 +21,9 @@ int dechiffreKc( 	unsigned char **output, 	unsigned int *output_len,
 					unsigned char *input, 		unsigned int input_len,
 					const char *filename);
 
-int findKc( unsigned char *input, unsigned int input_len,
-					unsigned char **Kc, unsigned int *offset);
+int findKc( unsigned char *input, unsigned int input_len, 
+			unsigned char *key,
+			unsigned char **Kc, unsigned int *offset);
 
 int signFic(unsigned char **output, 	unsigned int *output_len,
 			const char *filename, char *key);

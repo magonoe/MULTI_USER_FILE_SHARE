@@ -557,7 +557,7 @@ cleanup:
 								return ret;
 }
 
-int findKc( unsigned char *input, unsigned int input_len,unsigned char **Kc, unsigned int *offset)
+int findKc( unsigned char *input, unsigned int input_len, unsigned char *key,unsigned char **Kc, unsigned int *offset)
 {
 								return 1;
 }
@@ -659,6 +659,7 @@ int signeKpub(unsigned char **output,  unsigned int *output_len,
 int verifySign(unsigned char *input, unsigned int input_len,char *key)
 {
 								int ret = 0;
+								char val=0;
 								mbedtls_pk_context ctx5;
 								mbedtls_sha256_context ctx6;
 								const int SHA256 = 0;
@@ -673,7 +674,8 @@ int verifySign(unsigned char *input, unsigned int input_len,char *key)
 								mbedtls_sha256_starts_ret( &ctx6, SHA256 );
 								mbedtls_sha256_update_ret( &ctx6, input,input_len-256 );
 								mbedtls_sha256_finish_ret( &ctx6, hash);
-								if( (mbedtls_pk_verify( &ctx5, MBEDTLS_MD_SHA256, hash, 0,&input[input_len-256-1], 256 ) ) !=0)
+								int j =0;
+								if( (val = mbedtls_pk_verify( &ctx5, MBEDTLS_MD_SHA256, hash, 0,&input[input_len-256], 256 ) ) !=0)
 								{
 																ret =1;
 																goto cleanup;
@@ -820,6 +822,13 @@ int encrypt(int argc, char **argv)
 																ret=1;
 																goto cleanup;
 								}
+								int l=0;
+								for (l=0;l<Sign_output_len;l++)
+								{
+									printf("%02x",Sign_output[l] );
+								}
+								printf("\nlen %d\n",Sign_output_len);
+
 
 								fichierSortie= fopen(argv[3],"a");
 								if (fichierSortie == NULL)
@@ -877,7 +886,6 @@ cleanup:
 }
 
 
-
 int decrypt(int argc, char **argv)
 {
 								//-d <input_file> <output_file> <my_priv_ciph.pem> <my_pub_ciph.pem> <sender_sign_pub.pem>
@@ -898,21 +906,23 @@ int decrypt(int argc, char **argv)
 								if (loadInput(&input,&input_len,argv[2],0) != 0)
 								{
 																ret=1;
+																printf("cocuou\n");
 																goto cleanup;
 								}
-								/*printf("2 VERIFY_SIGN\n");
+								printf("2 VERIFY_SIGN\n");
 								   if (verifySign(input,input_len,argv[6]) !=0)
 								   {
 								     ret=1;
+								     printf("hey\n");
 								     goto cleanup;
 								   }
-								   printf("3 FIND_KC\n");
-								   if (findKc(input,input_len,&Kc,&offset) !=0)
+								 printf("3 FIND_KC\n");
+								   if (findKc(input,input_len,&Kc,&offset,argv[5]) !=0)
 								   {
 								     ret=1;
 								     goto cleanup;
 								   }
-
+/*
 								   printf("4 DECHIFFRE_BUFFER\n");
 								   if (chiffre_buffer(&output,&output_len,input,input_len,Kc,IV) !=0)
 								   {
