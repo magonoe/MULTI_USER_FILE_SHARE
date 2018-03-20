@@ -799,13 +799,13 @@ cleanup:
 
 void help()
 {
-	printf("Utilisation : multi_protect <MODE> <input_file> <output_file> <ARGV_KEY>\n");
+	printf("Usage : multi_protect <MODE> <input_file> <output_file> <ARGV_KEY>\n");
 	printf("\n");
 	printf("<MODE>\n");
-	printf("\t-e\t mode chiffrement\n");
+	printf("\t-e\t cipher mode\n");
 	printf("\t\t\t <ARGV_KEY>:  <my_sign_priv.pem> <my_ciph_pub.pem> [user1_ciph_pub.pem ... [userN_ciph_pub.pem]]\n");
 	printf("\n");
-	printf("\t-d\t mode dechiffrement\n");
+	printf("\t-d\t uncipher mode\n");
 	printf("\t\t\t <ARGV_KEY>:  <my_priv_ciph.pem> <my_pub_ciph.pem> <sender_sign_pub.pem>\n");
 	return;
 }
